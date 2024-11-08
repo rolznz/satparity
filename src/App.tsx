@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import InfoModal from './components/InfoModal'
 
 interface Rate {
   code: string
@@ -100,6 +101,7 @@ function App() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [showHistoric, setShowHistoric] = useState(false)
+  const [isInfoModalOpen, setIsInfoModalOpen] = useState(false)
 
   useEffect(() => {
     const fetchRates = async () => {
@@ -166,7 +168,17 @@ function App() {
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-[1600px]">
-      <div className="flex flex-col items-center gap-4 mb-8">
+      <div className="flex flex-col items-center gap-4 mb-8 relative">
+        <button
+          onClick={() => setIsInfoModalOpen(true)}
+          className="absolute right-0 top-0 p-2 text-gray-600 hover:text-gray-800 transition-colors"
+          aria-label="Information"
+        >
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </button>
+
         <h1 className="text-3xl font-bold text-center">
           Bitcoin Purchasing Power Tracker
         </h1>
@@ -245,6 +257,11 @@ function App() {
           )
         })}
       </div>
+
+      <InfoModal 
+        isOpen={isInfoModalOpen}
+        onClose={() => setIsInfoModalOpen(false)}
+      />
     </div>
   )
 }
