@@ -1,0 +1,11 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  @apply antialiased;
+}
+
+body {
+  @apply bg-gray-100 min-h-screen font-sans;
+}
