@@ -117,7 +117,7 @@ function App() {
             satPrice: (rate as number) / 100_000_000,
             parityInfo: findParityDate(code,btcUsdRate, rate as number)
           }))
-          .filter(rate => rate.code !== 'BTC')
+          .filter(rate => !["BTC", "XAG", "XPT", "XAU"].includes(rate.code))
 
         // Sort by sat price (descending)
         const sortedRates = ratesArray.sort((a, b) => b.satPrice - a.satPrice)
@@ -165,12 +165,17 @@ function App() {
     return true
   })
 
+  const parityCount = rates.filter(rate => 
+    rate.parityInfo?.type === 'past' || rate.parityInfo?.type === 'now'
+  ).length
+  const parityPercentage = Math.round((parityCount / rates.length) * 100)
+
   return (
     <div className="container mx-auto px-4 py-8 max-w-[1600px]">
       <div className="flex flex-col items-center gap-4 mb-8 relative">
         <button
           onClick={() => setIsInfoModalOpen(true)}
-          className="absolute right-0 top-0 p-2 text-gray-600 hover:text-gray-800 transition-colors"
+          className="absolute right-0 top-0 p-2 text-blue-400 hover:text-blue-600 transition-colors"
           aria-label="Information"
         >
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -191,7 +196,7 @@ function App() {
             className="sr-only peer"
           />
           <div className="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gradient-to-r peer-checked:from-sky-400 peer-checked:to-sky-500"></div>
-          <span className="ms-3 text-sm font-medium text-gray-900">Show Historic Currencies</span>
+          <span className="ms-3 text-sm font-medium text-gray-900">Show Long Dead</span>
         </label>
       </div>
 
@@ -255,6 +260,23 @@ function App() {
             </div>
           )
         })}
+      </div>
+
+      <div className="bg-white shadow-lg p-4 mt-4">
+        <div className="container mx-auto max-w-[1600px]">
+          <div className="flex flex-col gap-2">
+            <div className="flex justify-between items-center">
+              <span className="font-semibold">The Sattening</span>
+              <span className="font-semibold">{parityPercentage}%</span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2.5">
+              <div 
+                className="bg-gradient-to-r from-sky-400 to-sky-500 h-2.5 rounded-full transition-all duration-500" 
+                style={{ width: `${parityPercentage}%` }}
+              ></div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <InfoModal 
