@@ -207,7 +207,9 @@ function App() {
         </button>
 
         <h1 className="text-3xl font-bold text-center">
-          Bitcoin Purchasing Power Tracker
+          Bitcoin Purchasing
+          <br />
+          Power Tracker
         </h1>
 
         {/* Toggle Switch */}
