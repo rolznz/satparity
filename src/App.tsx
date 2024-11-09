@@ -49,7 +49,6 @@ function findParityDate(code: string, btcUsdRate: number, btcRate: number): { ty
     // Check if parity occurred between these two points
     if (current.price <= usdPriceNeeded &&  
         next.price >= usdPriceNeeded) {
-      console.log(code +" found between " + current.price + ", " + next.price)
       // Linear interpolation to estimate exact date
       const ratio = (usdPriceNeeded - current.price) / (next.price - current.price)
       const timestamp = Math.floor(current.date.getTime() + 
