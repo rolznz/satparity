@@ -1,10 +1,66 @@
+import { nwc } from "@getalby/sdk";
+import { launchPaymentModal } from "@getalby/bitcoin-connect";
+import { useState } from "react";
+
+const DONATION_CONNECTION_SECRET = "nostr+walletconnect://c8986738660e5e5ee92e21a51e1f2e5915ad7ee9e972f301fc670f8eb47e9bed?relay=wss://relay.getalby.com/v1&secret=4b1295fe100f412a44803def27d5eef6242443cbf1f2b55c557b141e46a736c7";
+
 interface InfoModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
 const InfoModal = ({ isOpen, onClose }: InfoModalProps) => {
+  const [donationStatus, setDonationStatus] = useState<string>("");
+
   if (!isOpen) return null;
+
+  const handleDonation = async (amount: number) => {
+    try {
+      const client = new nwc.NWCClient({
+        nostrWalletConnectUrl: DONATION_CONNECTION_SECRET,
+      });
+      
+      const transaction = await client.makeInvoice({
+        amount: amount * 1000,
+        description: `Donation to Sat Parity - ${amount} sats`,
+      });
+
+        const { setPaid } = await launchPaymentModal({
+          invoice: transaction.invoice,
+          onPaid: () => {
+            clearInterval(checkPaymentInterval);
+            setDonationStatus("Thank you for your donation!");
+          }
+        });
+
+        // Set up payment verification interval
+        const checkPaymentInterval = setInterval(async () => {
+          try {
+            // Use NWC to verify payment
+            const polledTransaction = await client.lookupInvoice({
+              invoice: transaction.invoice
+            });
+
+            if (polledTransaction.preimage) {
+              setPaid({
+                preimage: polledTransaction.preimage,
+              });
+            }
+          } catch (error) {
+            console.error('Error checking payment status:', error);
+          }
+        }, 1000);
+
+        // Clean up interval after 5 minutes (300000ms) if payment not received
+        setTimeout(() => {
+          clearInterval(checkPaymentInterval);
+        }, 300000);
+    } catch (error) {
+      console.error('Error processing donation:', error);
+      setDonationStatus("Error processing donation");
+      setTimeout(() => setDonationStatus(""), 3000);
+    }
+  };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -39,6 +95,35 @@ const InfoModal = ({ isOpen, onClose }: InfoModalProps) => {
               </svg>
               View on GitHub
             </a>
+          </div>
+
+          <div className="mt-8">
+            <h3 className="text-lg font-semibold mb-4">Support this project</h3>
+            <div className="flex gap-4 justify-center">
+              <button
+                onClick={() => handleDonation(1000)}
+                className="px-4 py-2 bg-gradient-to-r from-orange-400 to-orange-500 text-white rounded-lg hover:from-orange-500 hover:to-orange-600 transition-colors"
+              >
+                1k sats
+              </button>
+              <button
+                onClick={() => handleDonation(10000)}
+                className="px-4 py-2 bg-gradient-to-r from-amber-400 to-amber-500 text-white rounded-lg hover:from-amber-500 hover:to-amber-600 transition-colors"
+              >
+                10k sats
+              </button>
+              <button
+                onClick={() => handleDonation(100000)}
+                className="px-4 py-2 bg-gradient-to-r from-yellow-400 to-yellow-500 text-white rounded-lg hover:from-yellow-500 hover:to-yellow-600 transition-colors"
+              >
+                100k sats
+              </button>
+            </div>
+            {donationStatus && (
+              <div className="mt-4 text-center text-sm font-medium text-gray-700">
+                {donationStatus}
+              </div>
+            )}
           </div>
         </div>
       </div>
