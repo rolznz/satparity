@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import InfoModal from "./components/InfoModal";
+import DonateModal from "./components/DonateModal";
 
 interface Rate {
   code: string;
@@ -35,12 +36,11 @@ function findParityDate(
   const today = new Date();
 
   // If exactly at parity (within small margin)
-  if (Math.abs(satPrice - 1) < 0.1) {
+  if (satPrice > 1 && satPrice < 1.1) {
     return { type: "now", date: today };
   }
 
   // Calculate the BTC price needed for this currency to hit parity
-
   const btcPriceRatio = 100_000_000 / btcRate;
   const usdPriceNeeded = btcUsdRate * btcPriceRatio;
 
@@ -107,6 +107,9 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [showHistoric, setShowHistoric] = useState(false);
   const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
+  const [isDonateModalOpen, setIsDonateModalOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const cardRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   useEffect(() => {
     const fetchRates = async () => {
@@ -144,6 +147,23 @@ function App() {
     return () => clearInterval(interval);
   }, []);
 
+  useEffect(() => {
+    if (searchTerm) {
+      const matchedRate = rates.find(
+        (rate) =>
+          rate.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          rate.name.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+
+      if (matchedRate) {
+        cardRefs.current[matchedRate.code]?.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+      }
+    }
+  }, [searchTerm, rates]);
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -171,10 +191,17 @@ function App() {
   );
 
   const filteredRates = rates.filter((rate) => {
-    if (!showHistoric && rate.parityInfo?.type === "past") {
-      return rate.parityInfo.date >= threeYearsAgo;
-    }
-    return true;
+    const matchesSearch =
+      searchTerm === "" ||
+      rate.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      rate.name.toLowerCase().includes(searchTerm.toLowerCase());
+
+    const matchesHistoric =
+      !showHistoric && rate.parityInfo?.type === "past"
+        ? rate.parityInfo.date >= threeYearsAgo
+        : true;
+
+    return matchesSearch && matchesHistoric;
   });
 
   const parityCount = rates.filter(
@@ -185,46 +212,94 @@ function App() {
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-[1600px]">
-      <div className="flex flex-col items-center gap-4 mb-8 relative">
-        <button
-          onClick={() => setIsInfoModalOpen(true)}
-          className="absolute right-0 top-0 p-2 text-blue-400 hover:text-blue-600 transition-colors"
-          aria-label="Information"
-        >
-          <svg
-            className="w-6 h-6"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-            />
-          </svg>
-        </button>
-
+      <div className="mb-4 space-y-6">
         <h1 className="text-3xl font-bold text-center">
           Bitcoin Purchasing
           <br />
           Power Tracker
         </h1>
 
-        {/* Toggle Switch */}
-        <label className="inline-flex items-center cursor-pointer">
-          <input
-            type="checkbox"
-            checked={showHistoric}
-            onChange={(e) => setShowHistoric(e.target.checked)}
-            className="sr-only peer"
-          />
-          <div className="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gradient-to-r peer-checked:from-sky-400 peer-checked:to-sky-500"></div>
-          <span className="ms-3 text-sm font-medium text-gray-900">
-            Show Long Dead
-          </span>
-        </label>
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4 bg-white p-4 rounded-lg shadow-sm">
+          <div className="flex-grow max-w-md w-full">
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Search currency (e.g. USD, Euro)"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full px-4 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+              <svg
+                className="w-5 h-5 absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
+              </svg>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-4">
+            <label className="inline-flex items-center cursor-pointer whitespace-nowrap">
+              <input
+                type="checkbox"
+                checked={showHistoric}
+                onChange={(e) => setShowHistoric(e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gradient-to-r peer-checked:from-sky-400 peer-checked:to-sky-500"></div>
+              <span className="ms-3 text-sm font-medium text-gray-900">
+                Show Long Dead
+              </span>
+            </label>
+
+            <button
+              onClick={() => setIsDonateModalOpen(true)}
+              className="p-2 text-yellow-500 hover:text-yellow-600 transition-colors rounded-full hover:bg-yellow-50"
+              aria-label="Support"
+            >
+              <svg
+                className="w-6 h-6"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M13 10V3L4 14h7v7l9-11h-7z"
+                />
+              </svg>
+            </button>
+
+            <button
+              onClick={() => setIsInfoModalOpen(true)}
+              className="p-2 text-blue-400 hover:text-blue-600 transition-colors rounded-full hover:bg-blue-50"
+              aria-label="Information"
+            >
+              <svg
+                className="w-6 h-6"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+            </button>
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
@@ -266,6 +341,7 @@ function App() {
           return (
             <div
               key={rate.code}
+              ref={(el) => (cardRefs.current[rate.code] = el)}
               className={`
                 p-4 rounded-lg shadow-sm transition-transform hover:-translate-y-1
                 ${bgColorClass} ${textColorClass}
@@ -312,6 +388,11 @@ function App() {
       <InfoModal
         isOpen={isInfoModalOpen}
         onClose={() => setIsInfoModalOpen(false)}
+      />
+
+      <DonateModal
+        isOpen={isDonateModalOpen}
+        onClose={() => setIsDonateModalOpen(false)}
       />
     </div>
   );
