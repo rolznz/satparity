@@ -36,7 +36,7 @@ function findParityDate(
   const today = new Date();
 
   // If exactly at parity (within small margin)
-  if (satPrice > 1 && satPrice < 1.1) {
+  if (satPrice >= 1 && satPrice < 1.25) {
     return { type: "now", date: today };
   }
 
@@ -60,7 +60,7 @@ function findParityDate(
       );
 
       return {
-        type: timestamp <= today.getTime() ? "past" : "future",
+        type: timestamp <= today.getTime() && satPrice > 1 ? "past" : "future",
         date: new Date(timestamp),
       };
     }
