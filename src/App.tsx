@@ -20,13 +20,14 @@ const HISTORICAL_BTC_USD_PRICES = [
   { date: new Date("2013-01-01"), price: 1238 },
   { date: new Date("2018-01-01"), price: 20000 },
   { date: new Date("2021-01-01"), price: 68000 },
+  { date: new Date("2024-11-06"), price: 68000 },
   { date: new Date("2024-11-08"), price: 75000 },
   // estimated
-  { date: new Date("2025-01-01"), price: 300_000 },
-  { date: new Date("2029-01-01"), price: 3_000_000 },
-  { date: new Date("2034-01-01"), price: 10_000_000 },
-  { date: new Date("2038-01-01"), price: 100_000_000 },
-  { date: new Date("2042-01-01"), price: 1_000_000_000 },
+  { date: new Date("2026-01-01"), price: 300_000 },
+  { date: new Date("2030-01-01"), price: 3_000_000 },
+  { date: new Date("2034-01-01"), price: 30_000_000 },
+  { date: new Date("2038-01-01"), price: 300_000_000 },
+  { date: new Date("2042-01-01"), price: 3_000_000_000 },
 ];
 
 function findParityDate(
@@ -37,7 +38,7 @@ function findParityDate(
   const today = new Date();
 
   // If exactly at parity (within small margin)
-  if (satPrice >= 1 && satPrice < 1.25) {
+  if (satPrice >= 1 && satPrice < 1.2) {
     return { type: "now", date: today };
   }
 
@@ -121,6 +122,7 @@ function App() {
         const btcUsdRate: number = data.BTC["USD"];
 
         const ratesArray = Object.entries(data.BTC)
+          .filter((r) => !["BTC", "XAG", "XPT", "XAU"].includes(r[0]))
           .map(([code, rate]) => ({
             code,
             name:
@@ -129,9 +131,7 @@ function App() {
             rate: rate as number,
             satPrice: (rate as number) / 100_000_000,
             parityInfo: findParityDate(btcUsdRate, rate as number),
-          }))
-          .filter((rate) => !["BTC", "XAG", "XPT", "XAU"].includes(rate.code));
-
+          }));
         // Sort by sat price (descending)
         const sortedRates = ratesArray.sort((a, b) => b.satPrice - a.satPrice);
         setRates(sortedRates);
@@ -186,11 +186,6 @@ function App() {
 
   // Filter out historical rates older than 3 years if showHistoric is false
   const now = new Date();
-  const threeYearsAgo = new Date(
-    now.getFullYear() - 3,
-    now.getMonth(),
-    now.getDate()
-  );
 
   const filteredRates = rates.filter((rate) => {
     const matchesSearch =
@@ -198,11 +193,7 @@ function App() {
       rate.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
       rate.name.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesHistoric =
-      !showHistoric && rate.parityInfo?.type === "past"
-        ? rate.parityInfo.date >= threeYearsAgo
-        : true;
-
+    const matchesHistoric = showHistoric || rate.parityInfo?.type !== "past";
     return matchesSearch && matchesHistoric;
   });
 
