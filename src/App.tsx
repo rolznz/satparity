@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import InfoModal from "./components/InfoModal";
 import DonateModal from "./components/DonateModal";
+import TimelineChart from "./components/TimelineChart";
 
 interface Rate {
   code: string;
@@ -14,6 +15,7 @@ interface Rate {
 }
 
 const HISTORICAL_BTC_USD_PRICES = [
+  { date: new Date("2009-01-01"), price: 0.0 },
   { date: new Date("2010-01-01"), price: 0.09 },
   { date: new Date("2013-01-01"), price: 1238 },
   { date: new Date("2018-01-01"), price: 20000 },
@@ -25,7 +27,6 @@ const HISTORICAL_BTC_USD_PRICES = [
   { date: new Date("2034-01-01"), price: 10_000_000 },
   { date: new Date("2038-01-01"), price: 100_000_000 },
   { date: new Date("2042-01-01"), price: 1_000_000_000 },
-  { date: new Date("2046-01-01"), price: 10_000_000_000 },
 ];
 
 function findParityDate(
@@ -109,6 +110,7 @@ function App() {
   const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
   const [isDonateModalOpen, setIsDonateModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [displayMode, setDisplayMode] = useState<"cards" | "chart">("cards");
   const cardRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   useEffect(() => {
@@ -148,7 +150,7 @@ function App() {
   }, []);
 
   useEffect(() => {
-    if (searchTerm) {
+    if (searchTerm && displayMode === "cards") {
       const matchedRate = rates.find(
         (rate) =>
           rate.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -162,7 +164,7 @@ function App() {
         });
       }
     }
-  }, [searchTerm, rates]);
+  }, [searchTerm, rates, displayMode]);
 
   if (loading) {
     return (
@@ -249,7 +251,24 @@ function App() {
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 flex-wrap">
+            {/* View Toggle */}
+            <label className="inline-flex items-center cursor-pointer whitespace-nowrap">
+              <input
+                type="checkbox"
+                checked={displayMode === "chart"}
+                onChange={(e) => {
+                  if (e.target.checked) {
+                    setShowHistoric(true);
+                  }
+                  setDisplayMode(e.target.checked ? "chart" : "cards");
+                }}
+                className="sr-only peer"
+              />
+              <div className="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gradient-to-r peer-checked:from-indigo-400 peer-checked:to-indigo-500"></div>
+              <span className="ms-3 text-sm font-medium text-gray-900">📈</span>
+            </label>
+
             <label className="inline-flex items-center cursor-pointer whitespace-nowrap">
               <input
                 type="checkbox"
@@ -258,9 +277,7 @@ function App() {
                 className="sr-only peer"
               />
               <div className="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gradient-to-r peer-checked:from-sky-400 peer-checked:to-sky-500"></div>
-              <span className="ms-3 text-sm font-medium text-gray-900">
-                Show Long Dead
-              </span>
+              <span className="ms-3 text-sm font-medium text-gray-900">💀</span>
             </label>
 
             <button
@@ -306,71 +323,80 @@ function App() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
-        {filteredRates.map((rate) => {
-          const parityText =
-            rate.parityInfo?.type === "past"
-              ? `Hit parity ${formatTimeDistance(rate.parityInfo.date)} ago`
-              : rate.parityInfo?.type === "future"
-              ? `Expected parity in ${formatTimeDistance(rate.parityInfo.date)}`
-              : "Just hit parity!";
+      {displayMode === "chart" ? (
+        <TimelineChart
+          rates={filteredRates}
+          historicalPrices={HISTORICAL_BTC_USD_PRICES}
+        />
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
+          {filteredRates.map((rate) => {
+            const parityText =
+              rate.parityInfo?.type === "past"
+                ? `Hit parity ${formatTimeDistance(rate.parityInfo.date)} ago`
+                : rate.parityInfo?.type === "future"
+                ? `Expected parity in ${formatTimeDistance(
+                    rate.parityInfo.date
+                  )}`
+                : "Just hit parity!";
 
-          // Calculate time to parity for future dates
-          const timeToParityInDays =
-            rate.parityInfo?.type === "future"
-              ? (rate.parityInfo.date.getTime() - now.getTime()) /
-                (1000 * 60 * 60 * 24)
-              : 0;
+            // Calculate time to parity for future dates
+            const timeToParityInDays =
+              rate.parityInfo?.type === "future"
+                ? (rate.parityInfo.date.getTime() - now.getTime()) /
+                  (1000 * 60 * 60 * 24)
+                : 0;
 
-          // Determine background color class based on conditions
-          let bgColorClass = "";
-          if (rate.satPrice >= 1) {
-            bgColorClass =
-              rate.parityInfo?.type === "now"
-                ? "bg-gradient-to-br from-amber-400 to-amber-500" // Gold for just hit
-                : "bg-gradient-to-br from-sky-400 to-sky-500"; // Light blue for past parity
-          } else if (timeToParityInDays <= 365) {
-            bgColorClass = "bg-gradient-to-br from-red-400 to-red-500"; // Red for next year
-          } else if (timeToParityInDays <= 365 * 4) {
-            bgColorClass = "bg-gradient-to-br from-orange-400 to-orange-500"; // Orange for next 4 years
-          } else {
-            bgColorClass = "bg-gradient-to-br from-green-400 to-green-500"; // Green for beyond
-          }
+            // Determine background color class based on conditions
+            let bgColorClass = "";
+            if (rate.satPrice >= 1) {
+              bgColorClass =
+                rate.parityInfo?.type === "now"
+                  ? "bg-gradient-to-br from-amber-400 to-amber-500" // Gold for just hit
+                  : "bg-gradient-to-br from-sky-400 to-sky-500"; // Light blue for past parity
+            } else if (timeToParityInDays <= 365) {
+              bgColorClass = "bg-gradient-to-br from-red-400 to-red-500"; // Red for next year
+            } else if (timeToParityInDays <= 365 * 4) {
+              bgColorClass = "bg-gradient-to-br from-orange-400 to-orange-500"; // Orange for next 4 years
+            } else {
+              bgColorClass = "bg-gradient-to-br from-green-400 to-green-500"; // Green for beyond
+            }
 
-          const textColorClass =
-            rate.satPrice >= 1 || timeToParityInDays <= 365 * 4
-              ? "text-white"
-              : "text-white";
+            const textColorClass =
+              rate.satPrice >= 1 || timeToParityInDays <= 365 * 4
+                ? "text-white"
+                : "text-white";
 
-          return (
-            <div
-              key={rate.code}
-              ref={(el) => (cardRefs.current[rate.code] = el)}
-              className={`
-                p-4 rounded-lg shadow-sm transition-transform hover:-translate-y-1
-                ${bgColorClass} ${textColorClass}
-              `}
-            >
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="text-lg font-semibold">{rate.code}</h3>
-                {rate.satPrice >= 1 && (
-                  <span className="text-xs bg-white/20 px-2 py-1 rounded-full">
-                    Sat Parity
-                  </span>
-                )}
+            return (
+              <div
+                key={rate.code}
+                ref={(el) => (cardRefs.current[rate.code] = el)}
+                className={`
+                  p-4 rounded-lg shadow-sm transition-transform hover:-translate-y-1
+                  ${bgColorClass} ${textColorClass}
+                `}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-lg font-semibold">{rate.code}</h3>
+                  {rate.satPrice >= 1 && (
+                    <span className="text-xs bg-white/20 px-2 py-1 rounded-full">
+                      Sat Parity
+                    </span>
+                  )}
+                </div>
+                <p className="text-sm mb-2 text-white/90">{rate.name}</p>
+                <p className="text-sm font-medium text-white">
+                  1 sat = {rate.satPrice.toFixed(4)} {rate.code}
+                </p>
+                <p className="text-xs mt-2 text-white/80">
+                  1 BTC = {rate.rate.toLocaleString()} {rate.code}
+                </p>
+                <p className="text-xs mt-2 text-white/80">{parityText}</p>
               </div>
-              <p className="text-sm mb-2 text-white/90">{rate.name}</p>
-              <p className="text-sm font-medium text-white">
-                1 sat = {rate.satPrice.toFixed(4)} {rate.code}
-              </p>
-              <p className="text-xs mt-2 text-white/80">
-                1 BTC = {rate.rate.toLocaleString()} {rate.code}
-              </p>
-              <p className="text-xs mt-2 text-white/80">{parityText}</p>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
 
       <div className="bg-white shadow-lg p-4 mt-4">
         <div className="container mx-auto max-w-[1600px]">
