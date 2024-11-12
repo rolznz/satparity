@@ -100,7 +100,7 @@ const TimelineChart: React.FC<TimelineChartProps> = ({
       {/* Time labels */}
       {historicalPrices.map((point, index) => {
         if (index % 2 === 0) return null; // Show fewer labels
-        const position = (index / (historicalPrices.length - 1)) * 100;
+        const position = (index / historicalPrices.length) * 100;
         return (
           <div
             key={point.date.toISOString()}
