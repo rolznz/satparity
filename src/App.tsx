@@ -184,7 +184,7 @@ function App() {
     );
   }
 
-  // Filter out historical rates older than 3 years if showHistoric is false
+  // Filter out currencies that already are below sat parity if showHistoric is false
   const now = new Date();
 
   const filteredRates = rates.filter((rate) => {
@@ -196,6 +196,17 @@ function App() {
     const matchesHistoric = showHistoric || rate.parityInfo?.type !== "past";
     return matchesSearch && matchesHistoric;
   });
+
+  // Filter historical prices based on showHistoric
+  const lastHistoricalDateIndex = HISTORICAL_BTC_USD_PRICES.findIndex(
+    (price) => price.date > now
+  );
+  const filteredPrices = showHistoric
+    ? HISTORICAL_BTC_USD_PRICES
+    : [
+        HISTORICAL_BTC_USD_PRICES[Math.max(0, lastHistoricalDateIndex - 1)], // Include last historical date
+        ...HISTORICAL_BTC_USD_PRICES.slice(lastHistoricalDateIndex),
+      ];
 
   const parityCount = rates.filter(
     (rate) =>
@@ -317,7 +328,7 @@ function App() {
       {displayMode === "chart" ? (
         <TimelineChart
           rates={filteredRates}
-          historicalPrices={HISTORICAL_BTC_USD_PRICES}
+          historicalPrices={filteredPrices}
         />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
