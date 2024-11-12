@@ -86,6 +86,9 @@ const TimelineChart: React.FC<TimelineChartProps> = ({
               left: `${position}%`,
               bottom: `${Math.random() * 60 + 20}%`,
             }}
+            title={`${rate.name}\n1 sat = ${rate.satPrice.toFixed(4)} ${
+              rate.code
+            }`}
           >
             <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-sm font-medium whitespace-nowrap">
               {rate.code}
