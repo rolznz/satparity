@@ -217,6 +217,10 @@ function App() {
           Bitcoin Purchasing
           <br />
           Power Tracker
+          <br />
+          <span className="text-xs font-normal font-mono">
+            1 sat = 0.0000000<span className="font-medium">1</span> BTC
+          </span>
         </h1>
 
         <div className="flex flex-col md:flex-row items-center justify-between gap-4 bg-white p-4 rounded-lg shadow-sm">
